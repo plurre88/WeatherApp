@@ -1,0 +1,43 @@
+﻿@using VäderApp.Services
+@inject IAddDataService DataService
+@page "/AddData"
+
+<h3>Add Data To Database</h3>
+
+<p>
+    <InputFile OnChange="@OnInputFileChange" accept=".csv" />
+</p>
+
+@if (response != string.Empty)
+{
+    <h4>Response</h4>
+
+    @if(response == "Success")
+    {
+        <span class="badge bg-success">@response</span>
+    }
+    else
+    {
+        <span class="badge bg-warning">@response</span>
+    }
+}
+
+@code {
+    private string response = string.Empty;
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+
+        var isSuccessfull = await DataService.ConvertAndAdd(e.File);
+
+        if(isSuccessfull)
+        {
+            response = "Success";
+        }
+        else
+        {
+            response = "Failed";
+        }
+
+    }
+}

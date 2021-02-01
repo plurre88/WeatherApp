@@ -1,0 +1,333 @@
+﻿@page "/fetchdata"
+
+@using VäderApp.Services
+@using VäderApp.Models
+@using VäderApp.Entities
+@inject IFetchDataService FetchDataService
+
+<h1>Weather Data</h1>
+
+<p>Fetching data from the service.</p>
+
+
+@if (showCalander)
+{
+    <label for="start">Select date</label>
+    <br />
+    <input type="date" id="start" name="trip-start"
+           value="2017-01-10"
+           min="2016-05-31" max="2017-01-10" @onchange="DateChanged">
+}
+
+<br />
+<br />
+
+@if (weatherDatas != null)
+{
+    <button type="button" @onclick="AscendingOrDecendingChanged">^/</button>
+}
+
+<select class="form-select" aria-label="Default select example" @onchange="LocationChanged">
+    <option selected value="Inne">Indoor</option>
+    <option value="Ute">Outdoor</option>
+</select>
+
+<select class="form-select" aria-label="Default select example" @onchange="ShowOrderby">
+    <option selected value="Date">Date</option>
+    <option value="AverageTemperature">Temperature</option>
+    <option value="AverageHumidity">Humidity</option>
+    <option value="MoldRisk">Moldrisk</option>
+</select>
+
+<br />
+<br />
+
+<button type="button" class="btn btn-primary" @onclick="ToggleAvgTemp">Date Avg Temp</button> @* hämtar medeltemperaturen för valt datum *@
+<button type="button" class="btn btn-primary" @onclick="OrderAllData">Order Data</button> @* hämtar all data och sorterar på valt ämne *@
+<button type="button" class="btn btn-primary" @onclick="WinterStart">Winter</button> @* Algoritm för att räkna ut när vinter startar *@
+<button type="button" class="btn btn-primary" @onclick="FallStart">Fall</button> @* Algoritm för att räkna ut när hösten startar *@
+
+<br />
+<br />
+
+@if (showWeatherData)
+{
+    @if (weatherDatas != null)
+    {
+        <table class="table">
+            <thead>
+                @* Rubrikerna för datan *@
+                <tr>
+                    <th>Date</th>
+                    <th>Temperature &#8451;</th>
+                    <th>Humidity %</th>
+                    <th>Inside/outside</th>
+                    <th>Moldrisk %</th>
+                </tr>
+            </thead>
+            <tbody>
+                @* Utskriften för datan som sorteras och visas *@
+                @foreach (var forecast in weatherDatas.Where(l => l.Location == locationSelected))
+                {
+                    <tr>
+                        <td>@forecast.Date.ToShortDateString()</td>
+                        <td>@forecast.AverageTemperature &#8451;</td>
+                        <td>@forecast.AverageHumidity %</td>
+                        <td>@forecast.Location</td>
+                        <td>@forecast.MoldRisk %</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+
+@if (showDateData)
+{
+    <table class="table">
+        <thead>
+
+            <tr>
+                <th>Date</th>
+                <th> AvgTemperature &#8451;</th>
+            </tr>
+        </thead>
+        <tbody>
+
+            <tr>
+                <td>@specDate</td>
+                <td>@AvgDateTemp &#8451;</td>
+            </tr>
+        </tbody>
+    </table>
+}
+
+@if (showWinterData)
+{
+    <h4>@dateOfWinter</h4>
+}
+
+@if (showFallData)
+{
+    <h4>@dateOfFall</h4>
+}
+
+@code {
+    private bool showCalander;
+    private List<WeatherDataModel> weatherDatas;
+    private double AvgDateTemp;
+    private bool showDateData;
+    private string specDate;
+    private string locationSelected = "Inne";
+    private bool showWeatherData;
+    private string showOderby = "Date";
+    private bool orderFlipp = true;
+    private string dateOfWinter;
+    private bool showWinterData;
+    private bool showFallData;
+    private string dateOfFall;
+
+    private void DateChanged(ChangeEventArgs e)
+    {
+        showWeatherData = false;
+        showWinterData = false;
+        showFallData = false;
+
+        specDate = (string)e.Value;
+        AvgDateTemp = FetchDataService.GetDateAvgTemp(specDate, locationSelected);
+        showDateData = true;
+    }
+
+    private void LocationChanged(ChangeEventArgs e)
+    {
+        locationSelected = (string)e.Value;
+
+        if (specDate != null && showCalander)
+        {
+            AvgDateTemp = FetchDataService.GetDateAvgTemp(specDate, locationSelected);
+        }
+    }
+
+    private void AscendingOrDecendingChanged()
+    {
+        orderFlipp = !orderFlipp;
+        ShowOrderbyFix(showOderby);
+    }
+
+    private void ShowOrderby(ChangeEventArgs e)
+    {
+        showOderby = (string)e.Value;
+        ShowOrderbyFix(showOderby);
+    }
+
+    private void ShowOrderbyFix(string showOderby)
+    {
+        if (weatherDatas != null)
+        {
+            switch (showOderby)
+            {
+                case "Date":
+
+                    if (orderFlipp)
+                    {
+                        weatherDatas = weatherDatas.OrderBy(d => d.Date).ToList();
+                    }
+                    else if (!orderFlipp)
+                    {
+                        weatherDatas = weatherDatas.OrderByDescending(d => d.Date).ToList();
+                    }
+                    break;
+
+                case "AverageTemperature":
+
+                    if (orderFlipp)
+                    {
+                        weatherDatas = weatherDatas.OrderBy(d => d.AverageTemperature).ToList();
+                    }
+                    else if (!orderFlipp)
+                    {
+                        weatherDatas = weatherDatas.OrderByDescending(d => d.AverageTemperature).ToList();
+                    }
+                    break;
+
+                case "AverageHumidity":
+
+                    if (orderFlipp)
+                    {
+                        weatherDatas = weatherDatas.OrderBy(d => d.AverageHumidity).ToList();
+                    }
+                    else if (!orderFlipp)
+                    {
+                        weatherDatas = weatherDatas.OrderByDescending(d => d.AverageHumidity).ToList();
+                    }
+                    break;
+
+                case "MoldRisk":
+
+                    if (orderFlipp)
+                    {
+                        weatherDatas = weatherDatas.OrderBy(d => d.MoldRisk).ToList();
+                    }
+                    else if (!orderFlipp)
+                    {
+                        weatherDatas = weatherDatas.OrderByDescending(d => d.MoldRisk).ToList();
+                    }
+                    break;
+            }
+        }
+
+    }
+
+    private void ToggleAvgTemp()
+    {
+        showCalander = !showCalander;
+    }
+
+    private void OrderAllData()
+    {
+        showCalander = false;
+        showDateData = false;
+        showWinterData = false;
+        showFallData = false;
+        showWeatherData = true;
+
+        if (weatherDatas == null)
+        {
+            weatherDatas = FetchDataService.FetchDataToModel();
+        }
+    }
+
+    private void WinterStart()
+    {
+        showWinterData = true;
+        showCalander = false;
+        showDateData = false;
+        showWeatherData = false;
+        showFallData = false;
+        bool noWinter = true;
+
+
+        if (weatherDatas == null)
+        {
+            weatherDatas = FetchDataService.FetchDataToModel();
+        }
+
+        var winterStart = weatherDatas
+            .Where(d => d.Location == "Ute")
+            .OrderBy(d => d.Date)
+            .ToList();
+
+        for (int i = 0; i < winterStart.Count; i++)
+        {
+            if (winterStart[i].AverageTemperature <= 0 && i + 4 < winterStart.Count)
+            {
+                if (winterStart[i + 1].AverageTemperature <= 0)
+                {
+                    if (winterStart[i + 2].AverageTemperature <= 0)
+                    {
+                        if (winterStart[i + 3].AverageTemperature <= 0)
+                        {
+                            if (winterStart[i + 4].AverageTemperature <= 0)
+                            {
+                                noWinter = false;
+                                dateOfWinter = $"The winter started {winterStart[i].Date.ToShortDateString()}";
+                                i = winterStart.Count;
+                            }
+                        }
+                    }
+                }
+            }
+            if (noWinter)
+            {
+                dateOfWinter = "No winter were found!";
+            }
+        }
+    }
+
+    private void FallStart()
+    {
+        showFallData = true;
+        showWinterData = false;
+        showCalander = false;
+        showDateData = false;
+        showWeatherData = false;
+        bool noFall = true;
+
+        if (weatherDatas == null)
+        {
+            weatherDatas = FetchDataService.FetchDataToModel();
+        }
+
+        var fallStart = weatherDatas
+            .Where(d => d.Location == "Ute")
+            .OrderBy(d => d.Date)
+            .ToList();
+
+        for (int i = 0; i < fallStart.Count; i++)
+        {
+            if (fallStart[i].AverageTemperature > 0 && fallStart[i].AverageTemperature < 10 && i + 4 < fallStart.Count)
+            {
+                if (fallStart[i + 1].AverageTemperature > 0 && fallStart[i + 1].AverageTemperature < 10)
+                {
+                    if (fallStart[i + 2].AverageTemperature > 0 && fallStart[i + 2].AverageTemperature < 10)
+                    {
+                        if (fallStart[i + 3].AverageTemperature > 0 && fallStart[i + 3].AverageTemperature < 10)
+                        {
+                            if (fallStart[i + 4].AverageTemperature > 0 && fallStart[i + 4].AverageTemperature < 10)
+                            {
+                                noFall = false;
+                                dateOfFall = $"The fall started {fallStart[i].Date.ToShortDateString()}";
+                                i = fallStart.Count;
+                            }
+                        }
+                    }
+                }
+            }
+            if (noFall)
+            {
+                dateOfFall = "No fall were found!";
+            }
+        }
+    }
+}
